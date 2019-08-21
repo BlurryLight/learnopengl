@@ -22,6 +22,9 @@ file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/simple.frag
 file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/container.jpg
      DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 
+file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/awesomeface.png
+     DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+
 # Cmake will rerun whenever files are modified
 #configure_file(${CMAKE_CURRENT_SOURCE_DIR}/tri.vert
 #       ${CMAKE_CURRENT_BINARY_DIR} COPYONLY)

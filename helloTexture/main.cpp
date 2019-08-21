@@ -18,6 +18,8 @@
 static const GLuint SCR_WIDTH = 800;
 static const GLuint SCR_HEIGHT = 600;
 void framebuffer_size_callback(GLFWwindow*, int width, int height);
+
+static float visiable = 0.2f;
 int main() {
   if (!glfwInit()) {
     std::cerr << "FATAL INIT FAILED" << std::endl;
@@ -47,6 +49,9 @@ int main() {
 
   ShaderProgram linkedShader("tri.vert", "simple.frag");
   linkedShader.use();
+  glUniform1i(glGetUniformLocation(linkedShader, "texture1"), 0);
+  linkedShader.set_int("texture2", 1);
+  linkedShader.set_float("visiable", visiable);
 
   // data
 
@@ -63,6 +68,7 @@ int main() {
   };
 
   int tex_width, tex_height, nrChannels;
+  //  stbi_set_flip_vertically_on_load(1);
   unsigned char* data =
       stbi_load("container.jpg", &tex_width, &tex_height, &nrChannels, 0);
   if (!data) {
@@ -70,9 +76,10 @@ int main() {
     return -1;
   }
 
-  unsigned int texture;
-  glGenTextures(1, &texture);
-  glBindTexture(GL_TEXTURE_2D, texture);
+  /*FIRST TEXTURE*/
+  unsigned int texture1;
+  glGenTextures(1, &texture1);
+  glBindTexture(GL_TEXTURE_2D, texture1);
   // wrapping and filtering
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
@@ -81,6 +88,28 @@ int main() {
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
   glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, tex_width, tex_height, 0, GL_RGB,
+               GL_UNSIGNED_BYTE, data);
+  glGenerateMipmap(GL_TEXTURE_2D);
+  stbi_image_free(data);
+
+  /*SECOND TEXTURE*/
+  data = stbi_load("awesomeface.png", &tex_width, &tex_height, &nrChannels, 0);
+  if (!data) {
+    std::cerr << "FAILED TO LOAD TEXTURE2" << std::endl;
+    return -1;
+  }
+
+  unsigned int texture2;
+  glGenTextures(1, &texture2);
+  glBindTexture(GL_TEXTURE_2D, texture2);
+  // wrapping and filtering
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, tex_width, tex_height, 0, GL_RGBA,
                GL_UNSIGNED_BYTE, data);
   glGenerateMipmap(GL_TEXTURE_2D);
   stbi_image_free(data);
@@ -118,12 +147,34 @@ int main() {
   glBindVertexArray(0);
 
   while (!glfwWindowShouldClose(window)) {
-    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS ||
+        glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
       glfwSetWindowShouldClose(window, true);
+
+    if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS) {
+      visiable += 0.01f;
+      if (visiable >= 1.0f) {
+        visiable = 1.0f;
+      }
+      linkedShader.set_float("visiable", visiable);
+    }
+
+    if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS) {
+      visiable -= 0.01f;
+      if (visiable <= 0.0f) {
+        visiable = 0.0f;
+      }
+      linkedShader.set_float("visiable", visiable);
+    }
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+
     glClear(GL_COLOR_BUFFER_BIT);
 
-    glBindTexture(GL_TEXTURE_2D, texture);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, texture1);
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, texture2);
+
     glUseProgram(linkedShader);
     glBindVertexArray(VAO);
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
