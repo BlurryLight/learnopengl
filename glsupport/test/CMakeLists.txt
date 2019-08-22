@@ -10,9 +10,11 @@ pkg_search_module(GLFW REQUIRED glfw3)
 include_directories(${GLFW_INCLUDE_DIRS})
 find_package(OpenGL REQUIRED COMPONENTS OpenGL)
 
-find_package(glsupport REQUIRED PATHS ../)
+find_package(glsupport REQUIRED PATHS ${SRC_DIR}/../)
+find_package(glm REQUIRED)
 
 IF(NOT GLSUPPORT_FOUND)
+    message(${SRC_DIR})
     message(FATAL_ERROR "GLSUPPORT NOT FOUND")
 ENDIF()
 include_directories(${GLSUPPORT_INCLUDES})
@@ -40,5 +42,6 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
   ${CMAKE_DL_LIBS}
   ${GLSUPPORT_LIBRARIES}
   ${GLAD_LIBRARIES}
+  ${GLM_LIBRARIES}
   )
 set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 11)

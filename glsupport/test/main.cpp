@@ -10,6 +10,11 @@
 #include <iostream>
 #include <sstream>
 
+// glm
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
+
 // user-defined
 #include <glsupport.h>
 static const GLuint SCR_WIDTH = 800;
@@ -44,6 +49,14 @@ int main() {
 
   ShaderProgram linkedShader("tri.vert", "simple.frag");
   linkedShader.use();
+
+  // transformation
+
+  glm::mat4 trans = glm::mat4(1.0f);
+  trans = glm::translate(trans, glm::vec3(0.5f, 0.2f, 0.0f));
+  trans = glm::rotate(trans, glm::radians(90.0f), glm::vec3(0.0, 0.0, 1.0f));
+
+  linkedShader.set_mat4("transform", glm::value_ptr(trans));
 
   // data
   float vertices[] = {-0.5f, -0.5f, 0.0f, 0.5f, -0.5f, 0.0f, 0.0f, 0.5f, 0.0f};
