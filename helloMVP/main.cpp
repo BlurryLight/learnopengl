@@ -59,16 +59,11 @@ int main() {
   // transformation
   // projection
 
-  glm::mat4 view = glm::mat4(1.0f);
-  view = glm::translate(view, glm::vec3(0.0f, 0.0f, -3.0f));
-
   glm::mat4 projection = glm::mat4(1.0f);
   projection = glm::perspective(glm::radians(45.0f),
                                 static_cast<float>(SCR_WIDTH / SCR_HEIGHT),
                                 0.1f, 100.0f);
-  glm::mat4 vp = projection * view;
-
-  linkedShader.set_mat4("vp", glm::value_ptr(vp));
+  linkedShader.set_mat4("p", glm::value_ptr(projection));
 
   // data
 
@@ -219,6 +214,15 @@ int main() {
       linkedShader.set_mat4("m", glm::value_ptr(model));
       glDrawArrays(GL_TRIANGLES, 0, 36);
     }
+
+    glm::mat4 view = glm::mat4(1.0f);
+    float radius = 10.0f;
+    float camx = glm::sin(glfwGetTime()) * radius;
+    float camz = glm::cos(glfwGetTime()) * radius;
+    view = glm::lookAt(glm::vec3(camx, 0.0f, camz), glm::vec3(0.0, 0.0, 0.0),
+                       glm::vec3(0.0, 1.0f, 0.0f));
+
+    linkedShader.set_mat4("v", glm::value_ptr(view));
 
     glfwSwapBuffers(window);
     glfwPollEvents();
