@@ -170,7 +170,15 @@ int main() {
   glBindVertexArray(0);
 
   glEnable(GL_DEPTH_TEST);
-  while (!glfwWindowShouldClose(window)) {
+
+  glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 3.0f);
+  glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
+  glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
+
+  glm::mat4 view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
+  linkedShader.set_mat4("v", glm::value_ptr(view));
+
+  auto processInput = [&](GLFWwindow* window) {
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS ||
         glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
       glfwSetWindowShouldClose(window, true);
@@ -182,7 +190,6 @@ int main() {
       }
       linkedShader.set_float("visiable", visiable);
     }
-
     if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS) {
       visiable -= 0.01f;
       if (visiable <= 0.0f) {
@@ -190,6 +197,23 @@ int main() {
       }
       linkedShader.set_float("visiable", visiable);
     }
+    float cameraSpeed = 0.05f;  // adjust accordingly
+    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+      cameraPos += cameraSpeed * cameraFront;
+    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+      cameraPos -= cameraSpeed * cameraFront;
+    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+      cameraPos -=
+          glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
+    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+      cameraPos +=
+          glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
+  };
+
+  while (!glfwWindowShouldClose(window)) {
+    processInput(window);
+    view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
+    linkedShader.set_mat4("v", glm::value_ptr(view));
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -214,15 +238,6 @@ int main() {
       linkedShader.set_mat4("m", glm::value_ptr(model));
       glDrawArrays(GL_TRIANGLES, 0, 36);
     }
-
-    glm::mat4 view = glm::mat4(1.0f);
-    float radius = 10.0f;
-    float camx = glm::sin(glfwGetTime()) * radius;
-    float camz = glm::cos(glfwGetTime()) * radius;
-    view = glm::lookAt(glm::vec3(camx, 0.0f, camz), glm::vec3(0.0, 0.0, 0.0),
-                       glm::vec3(0.0, 1.0f, 0.0f));
-
-    linkedShader.set_mat4("v", glm::value_ptr(view));
 
     glfwSwapBuffers(window);
     glfwPollEvents();
