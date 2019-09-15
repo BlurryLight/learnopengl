@@ -22,7 +22,38 @@
 #include "stb_image.h"
 static const GLuint SCR_WIDTH = 800;
 static const GLuint SCR_HEIGHT = 600;
+
+Camera camera(glm::vec3(0.0, 0.0, 3.0));
+
+// time
+float deltaTime = 0.0f;
+float lastFrame = 0.0f;
+
+bool first_mouse = true;
+float yaw = -90.0f;  // why -90
+float pitch = 0.0f;
+float lastX = SCR_WIDTH / 2.0;
+float lastY = SCR_HEIGHT / 2.0;
+float fov = 45.0f;
+
 void framebuffer_size_callback(GLFWwindow*, int width, int height);
+void mouse_callback(GLFWwindow*, double xpos, double ypos) {
+  if (first_mouse) {
+    lastX = xpos;
+    lastY = ypos;
+    first_mouse = false;
+  }
+
+  float xoffset = xpos - lastX;
+  float yoffset = lastY - ypos;
+  lastX = xpos;
+  lastY = ypos;
+  //  std::cout << "xpos" << xpos << "ypos" << ypos << std::endl;
+  camera.ProcessMouseMovement(xoffset, yoffset);
+}
+void scroll_callback(GLFWwindow* window, double xoffset, double yoffset) {
+  camera.ProcessMouseScroll(yoffset);
+}
 
 static float visiable = 0.2f;
 int main() {
@@ -60,10 +91,6 @@ int main() {
   // projection
 
   glm::mat4 projection = glm::mat4(1.0f);
-  projection = glm::perspective(glm::radians(45.0f),
-                                static_cast<float>(SCR_WIDTH / SCR_HEIGHT),
-                                0.1f, 100.0f);
-  linkedShader.set_mat4("p", glm::value_ptr(projection));
 
   // data
 
@@ -171,11 +198,47 @@ int main() {
 
   glEnable(GL_DEPTH_TEST);
 
-  glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 3.0f);
-  glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
-  glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
+  // timing
+  float deltaTime = 0.0f;
+  float lastFrame = 0.0f;
 
-  glm::mat4 view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
+  glfwSetCursorPosCallback(window, mouse_callback);
+  glfwSetScrollCallback(window, scroll_callback);
+
+  //* a solution to glm::lookat
+  auto lambda_look_at = [](glm::vec3 position, glm::vec3 target,
+                           glm::vec3 worldup) -> glm ::mat4 {
+    glm::vec3 zaxis = glm::normalize(position - target);
+    glm::vec3 xaxis =
+        glm::normalize(glm::cross(glm::normalize(worldup), zaxis));
+    glm::vec3 yaxis = glm::cross(zaxis, xaxis);
+
+    glm::mat4 trans = glm::mat4(1.0f);
+    trans[3][0] = -position.x;
+    trans[3][1] = -position.y;
+    trans[3][2] = -position.z;
+
+    glm::mat4 rotation = glm::mat4(1.0f);
+    rotation[0][0] = xaxis.x;
+    rotation[1][0] = xaxis.y;
+    rotation[2][0] = xaxis.y;
+
+    rotation[0][1] = yaxis.x;
+    rotation[1][1] = yaxis.y;
+    rotation[2][1] = yaxis.y;
+
+    rotation[0][2] = zaxis.x;
+    rotation[1][2] = zaxis.y;
+    rotation[2][2] = zaxis.y;
+
+    return trans * rotation;
+  };
+
+  //  glm::mat4 view = glm::lookAt(cameraPos, cameraPos + cameraFront,
+  //  cameraUp);
+
+  glm::mat4 view = camera.getViewMatrix();
+
   linkedShader.set_mat4("v", glm::value_ptr(view));
 
   auto processInput = [&](GLFWwindow* window) {
@@ -199,20 +262,21 @@ int main() {
     }
     float cameraSpeed = 0.05f;  // adjust accordingly
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-      cameraPos += cameraSpeed * cameraFront;
+      camera.processKeyBoard(CameraMovement::kFORWARD, deltaTime);
     if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-      cameraPos -= cameraSpeed * cameraFront;
+      camera.processKeyBoard(CameraMovement::kBACKWARD, deltaTime);
     if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-      cameraPos -=
-          glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
+      camera.processKeyBoard(CameraMovement::kLEFT, deltaTime);
     if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-      cameraPos +=
-          glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
+      camera.processKeyBoard(CameraMovement::kRIGHT, deltaTime);
   };
 
   while (!glfwWindowShouldClose(window)) {
+    float currentFrame = glfwGetTime();
+    deltaTime = currentFrame - lastFrame;
+    lastFrame = currentFrame;
     processInput(window);
-    view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
+    view = camera.getViewMatrix();
     linkedShader.set_mat4("v", glm::value_ptr(view));
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 
@@ -224,6 +288,10 @@ int main() {
 
     glUseProgram(linkedShader);
     glBindVertexArray(VAO);
+    projection = glm::perspective(glm::radians(fov),
+                                  static_cast<float>(SCR_WIDTH / SCR_HEIGHT),
+                                  0.1f, 100.0f);
+    linkedShader.set_mat4("p", glm::value_ptr(projection));
 
     for (int i = 0; i < 10; i++) {
       glm::mat4 model = glm::mat4{1.0f};
