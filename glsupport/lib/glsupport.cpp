@@ -105,20 +105,21 @@ void ShaderProgram::check_compile_error(unsigned int shader_handle,
                                         std::string type) {
   // type = "PROGRAM" or "VSHADER" or "FSHADER"
   int success;
-  std::string infolog;
-  infolog.reserve(1024);
+  char buf[1024];
 
   if (type != "PROGRAM") {
     glGetShaderiv(shader_handle, GL_COMPILE_STATUS, &success);
     if (!success) {
-      glGetShaderInfoLog(shader_handle, 1024, NULL, &infolog[0]);
+      glGetShaderInfoLog(shader_handle, 1024, NULL, buf);
+      std::string infolog(buf);
       std::cerr << "FAILED TO COMPILE SHADER" << type << '\n'
                 << infolog << std::endl;
     }
   } else {
     glGetProgramiv(shader_handle, GL_LINK_STATUS, &success);
     if (!success) {
-      glGetProgramInfoLog(shader_handle, 1024, NULL, &infolog[0]);
+      glGetProgramInfoLog(shader_handle, 1024, NULL, buf);
+      std::string infolog(buf);
       std::cerr << "FAILED TO LINK PROGRAM" << type << '\n'
                 << infolog << std::endl;
     }
