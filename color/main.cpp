@@ -180,6 +180,9 @@ float vertices[] = {
     linkedShader.set_mat4("v", glm::value_ptr(view));
     glm::mat4 model = glm::mat4(1.0f);
     linkedShader.set_mat4("m", glm::value_ptr(model));
+    glm::mat3 normal_matrix = glm::mat3(glm::transpose(glm::inverse(model)));
+    linkedShader.set_mat3("normal_m", glm::value_ptr(normal_matrix));
+    linkedShader.set_vec3("viewPos", glm::value_ptr(camera.camera_position));
 
     // draw lame
     lameShader.use();
