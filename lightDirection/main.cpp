@@ -248,6 +248,10 @@ int main() {
     linkedShader.set_float("light.constant", 1.0f);
     linkedShader.set_float("light.linear", 0.09f);
     linkedShader.set_float("light.quadratic", 0.032f);
+    linkedShader.set_vec3("light.direction",
+                          glm::value_ptr(camera.camera_front));
+    linkedShader.set_float("light.cutoff", glm::cos(glm::radians(12.5f)));
+    linkedShader.set_float("light.outercutoff", glm::cos(glm::radians(25.0f)));
 
     // draw lame
     lameShader.use();
