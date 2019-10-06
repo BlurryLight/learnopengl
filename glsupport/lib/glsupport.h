@@ -5,10 +5,19 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
+#include <cstddef>
 #include <fstream>
 #include <iostream>
 #include <sstream>
 #include <string>
+#include <vector>
+
+#include <stb_image.h>
+
+// assimp
+#include <assimp/Importer.hpp>
+#include <assimp/postprocess.h>
+#include <assimp/scene.h>
 
 class Noncopyable {
  protected:
@@ -18,8 +27,8 @@ class Noncopyable {
   Noncopyable(const Noncopyable&) = delete;
   Noncopyable& operator=(const Noncopyable&) = delete;
 };
-class ShaderProgram : public Noncopyable {
- public:
+class ShaderProgram {
+public:
   // prrogram ID
   unsigned int id_;
 
@@ -90,8 +99,8 @@ constexpr float ZOOM = 45.0f;
 
 enum class CameraMovement { kFORWARD, kBACKWARD, kLEFT, kRIGHT };
 
-class Camera : public Noncopyable {
- public:
+class Camera {
+public:
   glm::vec3 camera_position;
   glm::vec3 camera_front;
   glm::vec3 world_up;
@@ -200,4 +209,53 @@ class Camera : public Noncopyable {
         glm::normalize(glm::cross(camera_front, this->world_up));
     this->camera_up = glm::normalize(glm::cross(camera_right, camera_front));
   }
+};
+
+struct Vertex {
+  glm::vec3 Position;
+  glm::vec3 Normal;
+  glm::vec2 TexCoords;
+  glm::vec3 Tangent;   // u
+  glm::vec3 Bitangent; // v
+};
+
+struct Texture {
+  unsigned int id;
+  std::string type;
+  std::string path;
+};
+
+class Mesh {
+public:
+  std::vector<Vertex> vertices_;
+  std::vector<unsigned int> indices_;
+  std::vector<Texture> textures_;
+
+  Mesh(std::vector<Vertex> vertics, std::vector<unsigned int> indices,
+       std::vector<Texture> textures)
+      : vertices_(vertics), indices_(indices), textures_(textures) {
+    setupMesh();
+  }
+  void Draw(ShaderProgram shader);
+
+private:
+  unsigned VAO, VBO, EBO;
+  void setupMesh();
+};
+
+class Model {
+public:
+  Model(std::string path) { loadModel(path); }
+  void Draw(ShaderProgram shader);
+  std::vector<Mesh> meshes_;
+  std::vector<Texture> texture_loaded_;
+  bool gammaCorrection; //?
+  std::string directory;
+
+private:
+  void loadModel(std::string path);
+  void processNode(aiNode *node, const aiScene *scene);
+  Mesh processMesh(aiMesh *mesh, const aiScene *scene);
+  std::vector<Texture> loadMaterailTextures(aiMaterial *mat, aiTextureType type,
+                                            std::string typeName);
 };
