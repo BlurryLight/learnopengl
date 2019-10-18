@@ -83,7 +83,7 @@ int main() {
   linkedShader.use();
   glEnable(GL_DEPTH_TEST);
 
-  Model ourModel("model/nanosuit.obj");
+  Model ourModel("model/head2.obj");
 
   while (!glfwWindowShouldClose(window)) {
     float currentFrame = glfwGetTime();

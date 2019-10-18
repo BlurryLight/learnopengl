@@ -1,6 +1,6 @@
 #pragma once
 
-#include <glad/glad.h>
+#include "glad/glad.h"
 //只需要包括glad,因为shader类里不需要接手context
 
 #include <fstream>
