@@ -3,55 +3,55 @@
 #include <GLFW/glfw3.h>
 #include <glsupport.h>
 #include <iostream>
-#include <opencv2/highgui.hpp>
-#include <opencv2/imgproc.hpp>
-#include <opencv2/videoio.hpp>
-using namespace cv;
+
+#include "src/video_camera.h"
+#include <chrono>
+#include <glm/gtc/type_ptr.hpp>
 
 void framebuffer_size_callback(GLFWwindow *window, int width, int height);
 void processInput(GLFWwindow *window);
-unsigned char *cvMat2TexInput(Mat &img);
+glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 3.0f);
 
-int main() {
-  glfwInit();
+GLFWwindow *init_gl(int width, int height, const char *framename) {
+  if (!glfwInit()) {
+    std::cerr << "GLFW INIT FATAL ERROR" << std::endl;
+    exit(-1);
+  }
   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-#ifdef __APPLE__
-  glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE); // for Mac OSX
-#endif
-
-  VideoCapture cap(0);
-  if (!cap.isOpened()) {
-    std::cout << "Camera not opened!" << std::endl;
-    return -1;
-  }
-  Mat frame;
-  cap >> frame;
-
-  int width = frame.cols;
-  int height = frame.rows;
-  unsigned char *image = cvMat2TexInput(frame);
-
-  // glfw window creation
-  GLFWwindow *window = glfwCreateWindow(width, height, "frame", NULL, NULL);
+  GLFWwindow *window = glfwCreateWindow(width, height, framename, NULL, NULL);
   if (window == NULL) {
-    std::cout << "Failed to create GLFW window" << std::endl;
-    glfwTerminate();
-    return -1;
+    std::cerr << "CREATE WINDOW FATAL ERROR" << std::endl;
+    exit(-1);
   }
 
   glfwMakeContextCurrent(window);
   glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 
-  // glad: load all OpenGL function pointers
+  // glad loads
   if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
-    std::cout << "Failed to initialize GLAD" << std::endl;
-    return -1;
+    std::cerr << "GLAD INIT FATAL ERROR" << std::endl;
+    exit(-1);
   }
+  return window;
+}
+
+int main() {
+
+  pd::VideoCamera cam;
+
+  int width = cam.get_frame_size().first;
+  int height = cam.get_frame_size().second;
+  unsigned char *image = cam.get_frame();
+
+  // glfw window creation
+  GLFWwindow *window = init_gl(width, height, "frame");
 
   ShaderProgram ourShader("tri.vert", "simple.frag");
+  ShaderProgram cubeShader("lame.vert", "lame.frag");
+
   float vertices[] = {
       //     Position       TexCoord
       -1.0f, 1.0f,  0.0f, 0.0f, 1.0f, // top left
@@ -59,6 +59,31 @@ int main() {
       -1.0f, -1.0f, 0.0f, 0.0f, 0.0f, // below left
       1.0f,  -1.0f, 0.0f, 1.0f, 0.0f  // below right
   };
+  glEnable(GL_DEPTH_TEST);
+  float cubeVertices[] = {
+      -0.5f, -0.5f, -0.5f, 0.0f, 0.0f, 0.5f,  -0.5f, -0.5f, 1.0f, 0.0f,
+      0.5f,  0.5f,  -0.5f, 1.0f, 1.0f, 0.5f,  0.5f,  -0.5f, 1.0f, 1.0f,
+      -0.5f, 0.5f,  -0.5f, 0.0f, 1.0f, -0.5f, -0.5f, -0.5f, 0.0f, 0.0f,
+
+      -0.5f, -0.5f, 0.5f,  0.0f, 0.0f, 0.5f,  -0.5f, 0.5f,  1.0f, 0.0f,
+      0.5f,  0.5f,  0.5f,  1.0f, 1.0f, 0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
+      -0.5f, 0.5f,  0.5f,  0.0f, 1.0f, -0.5f, -0.5f, 0.5f,  0.0f, 0.0f,
+
+      -0.5f, 0.5f,  0.5f,  1.0f, 0.0f, -0.5f, 0.5f,  -0.5f, 1.0f, 1.0f,
+      -0.5f, -0.5f, -0.5f, 0.0f, 1.0f, -0.5f, -0.5f, -0.5f, 0.0f, 1.0f,
+      -0.5f, -0.5f, 0.5f,  0.0f, 0.0f, -0.5f, 0.5f,  0.5f,  1.0f, 0.0f,
+
+      0.5f,  0.5f,  0.5f,  1.0f, 0.0f, 0.5f,  0.5f,  -0.5f, 1.0f, 1.0f,
+      0.5f,  -0.5f, -0.5f, 0.0f, 1.0f, 0.5f,  -0.5f, -0.5f, 0.0f, 1.0f,
+      0.5f,  -0.5f, 0.5f,  0.0f, 0.0f, 0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+
+      -0.5f, -0.5f, -0.5f, 0.0f, 1.0f, 0.5f,  -0.5f, -0.5f, 1.0f, 1.0f,
+      0.5f,  -0.5f, 0.5f,  1.0f, 0.0f, 0.5f,  -0.5f, 0.5f,  1.0f, 0.0f,
+      -0.5f, -0.5f, 0.5f,  0.0f, 0.0f, -0.5f, -0.5f, -0.5f, 0.0f, 1.0f,
+
+      -0.5f, 0.5f,  -0.5f, 0.0f, 1.0f, 0.5f,  0.5f,  -0.5f, 1.0f, 1.0f,
+      0.5f,  0.5f,  0.5f,  1.0f, 0.0f, 0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+      -0.5f, 0.5f,  0.5f,  0.0f, 0.0f, -0.5f, 0.5f,  -0.5f, 0.0f, 1.0f};
   // Set up index
   unsigned int indices[] = {0, 1, 2, 1, 2, 3};
 
@@ -80,6 +105,17 @@ int main() {
   glEnableVertexAttribArray(0);
   glEnableVertexAttribArray(1);
 
+  unsigned int cubeVAO, cubeVBO;
+  glGenVertexArrays(1, &cubeVAO);
+  glGenBuffers(1, &cubeVBO);
+  glBindVertexArray(cubeVAO);
+  glBindBuffer(GL_ARRAY_BUFFER, cubeVBO);
+  glBufferData(GL_ARRAY_BUFFER, sizeof(cubeVertices), &cubeVertices,
+               GL_STATIC_DRAW);
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void *)0);
+  glEnableVertexAttribArray(0);
+  glBindVertexArray(0);
+
   unsigned int texture;
   glGenTextures(1, &texture);
   glBindTexture(GL_TEXTURE_2D, texture);
@@ -88,28 +124,44 @@ int main() {
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-  //  glGenerateMipmap(GL_TEXTURE_2D);
+  glGenerateMipmap(GL_TEXTURE_2D);
+  auto time_1 = std::chrono::high_resolution_clock::now();
+
   while (!glfwWindowShouldClose(window)) {
-    cap >> frame;
-    //    imshow("frame", frame);
-    image = cvMat2TexInput(frame);
+
+    auto time_2 = std::chrono::high_resolution_clock::now();
+    auto duration =
+        std::chrono::duration_cast<std::chrono::milliseconds>(time_2 - time_1);
+    time_1 = time_2;
+    std::cerr << duration.count() << std::endl;
+    image = cam.get_frame();
     if (image) {
       glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB,
                    GL_UNSIGNED_BYTE, image);
-      std::cerr << width << height << std::endl;
-      //      glGenerateMipmap(GL_TEXTURE_2D);
+      glGenerateMipmap(GL_TEXTURE_2D);
     } else {
       std::cout << "Failed to load texture." << std::endl;
     }
 
     processInput(window);
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     // Draw Rectangle
     ourShader.use();
+    auto bgmodel = glm::mat4(1.0f);
+    ourShader.set_mat4("m", glm::value_ptr(bgmodel));
     glBindTexture(GL_TEXTURE_2D, texture);
     glBindVertexArray(VAO);
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+    cubeShader.use();
+    glBindVertexArray(cubeVAO);
+    auto cubemodel = glm::mat4(1.0f);
+    cubemodel = glm::translate(cubemodel, glm::vec3(0.0f, 0.0f, -0.1f));
+    auto projection = glm::ortho(-1.0f, 1.0f, -1.0f, 1.0f, -100.0f, 100.0f);
+    //        glm::perspective(45.0f, (float)(width / height), 0.1f, 100.0f);
+    cubeShader.set_mat4("m", glm::value_ptr(cubemodel));
+    cubeShader.set_mat4("p", glm::value_ptr(projection));
+    glDrawArrays(GL_TRIANGLES, 0, 36);
     glfwSwapBuffers(window);
     glfwPollEvents();
   }
@@ -128,8 +180,3 @@ void processInput(GLFWwindow *window) {
     glfwSetWindowShouldClose(window, true);
 }
 
-unsigned char *cvMat2TexInput(Mat &img) {
-  cvtColor(img, img, COLOR_BGR2RGB);
-  flip(img, img, -1);
-  return img.data;
-}

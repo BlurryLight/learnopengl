@@ -3,8 +3,11 @@ cmake_minimum_required(VERSION 3.1)
 project(video_capture)
 
 # Source files
-set(SRC_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
-set(SOURCES "${SRC_DIR}/main.cpp" )
+set(PROJECT_ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
+set(HEADERS ${PROJECT_ROOT_DIR}/src/video_camera.h)
+set(SOURCES ${PROJECT_ROOT_DIR}/main.cpp  ${PROJECT_ROOT_DIR}/src/video_camera.cc)
+
+# package
 find_package(PkgConfig REQUIRED)
 pkg_search_module(GLFW REQUIRED glfw3)
 include_directories(${GLFW_INCLUDE_DIRS})
@@ -15,10 +18,18 @@ find_package(glsupport REQUIRED PATHS ${SRC_DIR}/../glsupport/)
 find_package(glm REQUIRED)
 find_package(assimp REQUIRED)
 
-IF(NOT GLSUPPORT_FOUND)
-    message(${SRC_DIR})
+find_package(dlib REQUIRED)
+
+if( OPENCV_FOUND )
+    message("FOUND OPENCV")
+else()
+    message(FATAL_ERROR "OPENCV NOT FOUND")
+endif()
+if(GLSUPPORT_FOUND)
+    message("FOUND GLSUPPORT")
+else()
     message(FATAL_ERROR "GLSUPPORT NOT FOUND")
-ENDIF()
+endif()
 include_directories(${GLSUPPORT_INCLUDES})
 # copy shaders
 
@@ -35,7 +46,7 @@ file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/lame.vert
 
 
 # Executable definition and properties
-add_executable(${PROJECT_NAME} ${SOURCES})
+add_executable(${PROJECT_NAME} ${HEADERS} ${SOURCES})
 # target_include_directories(${PROJECT_NAME} PRIVATE "${SRC_DIR}")
 target_link_libraries(${PROJECT_NAME} PRIVATE
   ${OPENGL_LIBRARIES}
@@ -47,5 +58,6 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
   dl
   ${GLM_LIBRARIES}
   ${ASSIMP_LIBRARIES}
+  dlib::dlib
   )
 set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 11)
