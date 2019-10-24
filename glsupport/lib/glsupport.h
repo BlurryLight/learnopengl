@@ -1,7 +1,8 @@
 #pragma once
 
+// clang-format off
 #include <glad/glad.h>
-//只需要包括glad,因为shader类里不需要接手context
+#include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
@@ -19,8 +20,9 @@
 #include <assimp/postprocess.h>
 #include <assimp/scene.h>
 
+// clang-format on
 class Noncopyable {
- protected:
+protected:
   Noncopyable() {}
   ~Noncopyable() {}
 
@@ -72,8 +74,8 @@ public:
   void check_compile_error(unsigned int shader_handle, std::string type);
 };
 
-class GlTexture : public Noncopyable {
- public:
+class GlTexture {
+public:
   // Texture ID
   unsigned int id_;
   GlTexture() { glGenTextures(1, &id_); }
@@ -259,3 +261,63 @@ private:
   std::vector<Texture> loadMaterailTextures(aiMaterial *mat, aiTextureType type,
                                             std::string typeName);
 };
+
+inline unsigned int loadTexture(const char *path) {
+
+  unsigned int textureID;
+  glGenTextures(1, &textureID);
+
+  int width, height, nrComponents;
+  unsigned char *data = stbi_load(path, &width, &height, &nrComponents, 0);
+  if (data) {
+    GLenum format;
+    if (nrComponents == 1)
+      format = GL_RED;
+    else if (nrComponents == 3)
+      format = GL_RGB;
+    else if (nrComponents == 4)
+      format = GL_RGBA;
+
+    glBindTexture(GL_TEXTURE_2D, textureID);
+    glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format,
+                 GL_UNSIGNED_BYTE, data);
+    glGenerateMipmap(GL_TEXTURE_2D);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,
+                    GL_LINEAR_MIPMAP_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    stbi_image_free(data);
+  } else {
+    std::cerr << "ERROR WHEN LOADING TEXTURE" << std::endl;
+    throw std::runtime_error("ERROR WHEN LOADING TEXTURE");
+    stbi_image_free(data);
+  }
+  return textureID;
+}
+inline GLFWwindow *init_gl_context(int width, int height,
+                                   const char *framename) {
+  if (!glfwInit()) {
+    std::cerr << "GLFW INIT FATAL ERROR" << std::endl;
+    exit(-1);
+  }
+  glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+  glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+  glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+
+  GLFWwindow *window = glfwCreateWindow(width, height, framename, NULL, NULL);
+  if (window == NULL) {
+    std::cerr << "CREATE WINDOW FATAL ERROR" << std::endl;
+    exit(-1);
+  }
+
+  glfwMakeContextCurrent(window);
+
+  // glad loads
+  if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
+    std::cerr << "GLAD INIT FATAL ERROR" << std::endl;
+    exit(-1);
+  }
+  return window;
+}
