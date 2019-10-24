@@ -58,8 +58,13 @@ int main() {
   glfwSetCursorPosCallback(window, mouse_callback);
   glfwSetScrollCallback(window, scroll_callback);
   ShaderProgram linkedShader("tri.vert", "simple.frag");
+  ShaderProgram outerShader("tri.vert", "lame.frag");
   linkedShader.use();
   glEnable(GL_DEPTH_TEST);
+  glDepthFunc(GL_LESS);
+  glEnable(GL_STENCIL_TEST);
+  glStencilFunc(GL_NOTEQUAL, 1, 0xFF);
+  glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
 
   // clang-format off
    float cubeVertices[] = {
@@ -162,7 +167,7 @@ int main() {
     processInput(window);
 
     glClearColor(0.1, 0.1, 0.1, 1.0);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
     // draw CUBE
     linkedShader.use();
@@ -173,25 +178,58 @@ int main() {
     glm::mat4 view = camera.getViewMatrix();
     linkedShader.set_mat4("p", glm::value_ptr(projection));
     linkedShader.set_mat4("v", glm::value_ptr(view));
+    outerShader.use();
+    outerShader.set_mat4("p", glm::value_ptr(projection));
+    outerShader.set_mat4("v", glm::value_ptr(view));
     // cube
+    linkedShader.use();
+    glStencilFunc(GL_ALWAYS, 1, 0xFF);
+    glStencilMask(0xFF);
+
     glBindVertexArray(cubeVAO);
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, cubeTexture);
     glm::mat4 model = glm::mat4(1.0f);
     model = glm::translate(model, glm::vec3(-1.0f, 0.0f, -1.0f));
     linkedShader.set_mat4("m", glm::value_ptr(model));
+
     glDrawArrays(GL_TRIANGLES, 0, 36);
+    model = glm::mat4(1.0f);
 
     model = glm::translate(model, glm::vec3(2.0f, 0.0f, 0.0f));
     linkedShader.set_mat4("m", glm::value_ptr(model));
     glDrawArrays(GL_TRIANGLES, 0, 36);
 
     // floor
+    glStencilMask(0x00);
     glBindVertexArray(planeVAO);
     glBindTexture(GL_TEXTURE_2D, floorTexture);
     linkedShader.set_mat4("m", glm::value_ptr(glm::mat4(1.0f)));
     glDrawArrays(GL_TRIANGLES, 0, 6);
     glBindVertexArray(0);
+
+    // outer ring
+    glStencilFunc(GL_NOTEQUAL, 1, 0xFF);
+    glStencilMask(0x00);
+    glDisable(GL_DEPTH_TEST);
+    outerShader.use();
+    float scale = 1.1f;
+    glBindVertexArray(cubeVAO);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, cubeTexture);
+    model = glm::mat4(1.0f);
+    model = glm::translate(model, glm::vec3(-1.0f, 0.0f, -1.0f));
+    model = glm::scale(model, glm::vec3(scale));
+    outerShader.set_mat4("m", glm::value_ptr(model));
+    glDrawArrays(GL_TRIANGLES, 0, 36);
+    model = glm::mat4(1.0f);
+    model = glm::translate(model, glm::vec3(2.0f, 0.0f, 0.0f));
+    model = glm::scale(model, glm::vec3(scale));
+    outerShader.set_mat4("m", glm::value_ptr(model));
+    glDrawArrays(GL_TRIANGLES, 0, 36);
+    glStencilMask(0xFF);
+    glBindVertexArray(0);
+    glEnable(GL_DEPTH_TEST);
 
     glfwSwapBuffers(window);
     glfwPollEvents();
