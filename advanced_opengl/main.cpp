@@ -16,6 +16,7 @@
 #include <glm/gtc/type_ptr.hpp>
 // user-defined
 #include <glsupport.h>
+#include <map>
 
 #include <filesystem>
 
@@ -121,119 +122,173 @@ int main() {
         -5.0f, -0.5f, -5.0f,  0.0f, 2.0f,
          5.0f, -0.5f, -5.0f,  2.0f, 2.0f								
     };
-  // clang-format on
+    float transparentVertices[] = {
+        // positions         // texture Coords (swapped y coordinates because texture is flipped upside down)
+        0.0f,  0.5f,  0.0f,  0.0f,  0.0f,
+        0.0f, -0.5f,  0.0f,  0.0f,  1.0f,
+        1.0f, -0.5f,  0.0f,  1.0f,  1.0f,
 
-  unsigned int cubeVAO, cubeVBO;
-  glGenVertexArrays(1, &cubeVAO);
-  glGenBuffers(1, &cubeVBO);
-  glBindVertexArray(cubeVAO);
-  glBindBuffer(GL_ARRAY_BUFFER, cubeVBO);
-  glBufferData(GL_ARRAY_BUFFER, sizeof(cubeVertices), cubeVertices,
-               GL_STATIC_DRAW);
-  glEnableVertexAttribArray(0);
-  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void *)0);
-  glEnableVertexAttribArray(1);
-  glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float),
-                        (void *)(3 * sizeof(float)));
-  glBindVertexArray(0);
-  // plane
-  unsigned int planeVAO, planeVBO;
-  glGenVertexArrays(1, &planeVAO);
-  glGenBuffers(1, &planeVBO);
-  glBindVertexArray(planeVAO);
-  glBindBuffer(GL_ARRAY_BUFFER, planeVBO);
-  glBufferData(GL_ARRAY_BUFFER, sizeof(planeVertices), planeVertices,
-               GL_STATIC_DRAW);
-  glEnableVertexAttribArray(0);
-  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void *)0);
-  glEnableVertexAttribArray(1);
-  glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float),
-                        (void *)(3 * sizeof(float)));
-  glBindVertexArray(0);
+        0.0f,  0.5f,  0.0f,  0.0f,  0.0f,
+        1.0f, -0.5f,  0.0f,  1.0f,  1.0f,
+        1.0f,  0.5f,  0.0f,  1.0f,  0.0f
+    };
+       // clang-format on
 
-  // texture
+       unsigned int cubeVAO, cubeVBO;
+       glGenVertexArrays(1, &cubeVAO);
+       glGenBuffers(1, &cubeVBO);
+       glBindVertexArray(cubeVAO);
+       glBindBuffer(GL_ARRAY_BUFFER, cubeVBO);
+       glBufferData(GL_ARRAY_BUFFER, sizeof(cubeVertices), cubeVertices,
+                    GL_STATIC_DRAW);
+       glEnableVertexAttribArray(0);
+       glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float),
+                             (void *)0);
+       glEnableVertexAttribArray(1);
+       glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float),
+                             (void *)(3 * sizeof(float)));
+       glBindVertexArray(0);
+       // plane
+       unsigned int planeVAO, planeVBO;
+       glGenVertexArrays(1, &planeVAO);
+       glGenBuffers(1, &planeVBO);
+       glBindVertexArray(planeVAO);
+       glBindBuffer(GL_ARRAY_BUFFER, planeVBO);
+       glBufferData(GL_ARRAY_BUFFER, sizeof(planeVertices), planeVertices,
+                    GL_STATIC_DRAW);
+       glEnableVertexAttribArray(0);
+       glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float),
+                             (void *)0);
+       glEnableVertexAttribArray(1);
+       glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float),
+                             (void *)(3 * sizeof(float)));
+       glBindVertexArray(0);
+       // transparent
+       unsigned int transparentVAO, transparentVBO;
+       glGenVertexArrays(1, &transparentVAO);
+       glGenBuffers(1, &transparentVBO);
+       glBindVertexArray(transparentVAO);
+       glBindBuffer(GL_ARRAY_BUFFER, transparentVBO);
+       glBufferData(GL_ARRAY_BUFFER, sizeof(transparentVertices),
+                    transparentVertices, GL_STATIC_DRAW);
+       glEnableVertexAttribArray(0);
+       glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float),
+                             (void *)0);
+       glEnableVertexAttribArray(1);
+       glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float),
+                             (void *)(3 * sizeof(float)));
+       glBindVertexArray(0);
 
-  unsigned int cubeTexture = loadTexture("marble.jpg");
-  unsigned int floorTexture = loadTexture("metal.png");
+       // texture
 
-  linkedShader.use();
-  linkedShader.set_int("texture1", 0);
+       unsigned int cubeTexture = loadTexture("marble.jpg");
+       unsigned int floorTexture = loadTexture("metal.png");
+       unsigned int windowTexture = loadTexture("transparent_window.png");
 
-  while (!glfwWindowShouldClose(window)) {
-    float currentFrame = glfwGetTime();
-    deltaTime = currentFrame - lastFrame;
-    lastFrame = currentFrame;
+       linkedShader.use();
+       linkedShader.set_int("texture1", 0);
 
-    processInput(window);
+       // transparent window locations
+       // --------------------------------
+       std::vector<glm::vec3> windows{
+           glm::vec3(-1.5f, 0.0f, -0.48f), glm::vec3(1.5f, 0.0f, 0.51f),
+           glm::vec3(0.0f, 0.0f, 0.7f), glm::vec3(-0.3f, 0.0f, -2.3f),
+           glm::vec3(0.5f, 0.0f, -0.6f)};
 
-    glClearColor(0.1, 0.1, 0.1, 1.0);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+       glEnable(GL_BLEND);
+       glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+       while (!glfwWindowShouldClose(window)) {
+         float currentFrame = glfwGetTime();
+         deltaTime = currentFrame - lastFrame;
+         lastFrame = currentFrame;
+         std::map<float, glm::vec3> sorted;
+         for (unsigned int i = 0; i < windows.size(); i++) {
+           float distance = glm::length(camera.camera_position - windows[i]);
+           sorted[distance] = windows[i];
+         }
 
-    // draw CUBE
-    linkedShader.use();
+         processInput(window);
 
-    glm::mat4 projection =
-        glm::perspective(glm::radians(camera.zoom),
-                         (float)SRC_WIDTH / (float)SRC_HEIGHT, 0.1f, 100.0f);
-    glm::mat4 view = camera.getViewMatrix();
-    linkedShader.set_mat4("p", glm::value_ptr(projection));
-    linkedShader.set_mat4("v", glm::value_ptr(view));
-    outerShader.use();
-    outerShader.set_mat4("p", glm::value_ptr(projection));
-    outerShader.set_mat4("v", glm::value_ptr(view));
-    // cube
-    linkedShader.use();
-    glStencilFunc(GL_ALWAYS, 1, 0xFF);
-    glStencilMask(0xFF);
+         glClearColor(0.1, 0.1, 0.1, 1.0);
+         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT |
+                 GL_STENCIL_BUFFER_BIT);
 
-    glBindVertexArray(cubeVAO);
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, cubeTexture);
-    glm::mat4 model = glm::mat4(1.0f);
-    model = glm::translate(model, glm::vec3(-1.0f, 0.0f, -1.0f));
-    linkedShader.set_mat4("m", glm::value_ptr(model));
+         // draw CUBE
+         linkedShader.use();
 
-    glDrawArrays(GL_TRIANGLES, 0, 36);
-    model = glm::mat4(1.0f);
+         glm::mat4 projection = glm::perspective(
+             glm::radians(camera.zoom), (float)SRC_WIDTH / (float)SRC_HEIGHT,
+             0.1f, 100.0f);
+         glm::mat4 view = camera.getViewMatrix();
+         linkedShader.set_mat4("p", glm::value_ptr(projection));
+         linkedShader.set_mat4("v", glm::value_ptr(view));
+         outerShader.use();
+         outerShader.set_mat4("p", glm::value_ptr(projection));
+         outerShader.set_mat4("v", glm::value_ptr(view));
+         // cube
+         linkedShader.use();
+         glStencilFunc(GL_ALWAYS, 1, 0xFF);
+         glStencilMask(0xFF);
 
-    model = glm::translate(model, glm::vec3(2.0f, 0.0f, 0.0f));
-    linkedShader.set_mat4("m", glm::value_ptr(model));
-    glDrawArrays(GL_TRIANGLES, 0, 36);
+         glBindVertexArray(cubeVAO);
+         glActiveTexture(GL_TEXTURE0);
+         glBindTexture(GL_TEXTURE_2D, cubeTexture);
+         glm::mat4 model = glm::mat4(1.0f);
+         model = glm::translate(model, glm::vec3(-1.0f, 0.0f, -1.0f));
+         linkedShader.set_mat4("m", glm::value_ptr(model));
 
-    // floor
-    glStencilMask(0x00);
-    glBindVertexArray(planeVAO);
-    glBindTexture(GL_TEXTURE_2D, floorTexture);
-    linkedShader.set_mat4("m", glm::value_ptr(glm::mat4(1.0f)));
-    glDrawArrays(GL_TRIANGLES, 0, 6);
-    glBindVertexArray(0);
+         glDrawArrays(GL_TRIANGLES, 0, 36);
+         model = glm::mat4(1.0f);
 
-    // outer ring
-    glStencilFunc(GL_NOTEQUAL, 1, 0xFF);
-    glStencilMask(0x00);
-    glDisable(GL_DEPTH_TEST);
-    outerShader.use();
-    float scale = 1.1f;
-    glBindVertexArray(cubeVAO);
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, cubeTexture);
-    model = glm::mat4(1.0f);
-    model = glm::translate(model, glm::vec3(-1.0f, 0.0f, -1.0f));
-    model = glm::scale(model, glm::vec3(scale));
-    outerShader.set_mat4("m", glm::value_ptr(model));
-    glDrawArrays(GL_TRIANGLES, 0, 36);
-    model = glm::mat4(1.0f);
-    model = glm::translate(model, glm::vec3(2.0f, 0.0f, 0.0f));
-    model = glm::scale(model, glm::vec3(scale));
-    outerShader.set_mat4("m", glm::value_ptr(model));
-    glDrawArrays(GL_TRIANGLES, 0, 36);
-    glStencilMask(0xFF);
-    glBindVertexArray(0);
-    glEnable(GL_DEPTH_TEST);
+         model = glm::translate(model, glm::vec3(2.0f, 0.0f, 0.0f));
+         linkedShader.set_mat4("m", glm::value_ptr(model));
+         glDrawArrays(GL_TRIANGLES, 0, 36);
 
-    glfwSwapBuffers(window);
-    glfwPollEvents();
-  }
+         // floor
+         glStencilMask(0x00);
+         glBindVertexArray(planeVAO);
+         glBindTexture(GL_TEXTURE_2D, floorTexture);
+         linkedShader.set_mat4("m", glm::value_ptr(glm::mat4(1.0f)));
+         glDrawArrays(GL_TRIANGLES, 0, 6);
+         glBindVertexArray(0);
+
+         // outer ring
+         glStencilFunc(GL_NOTEQUAL, 1, 0xFF);
+         glStencilMask(0x00);
+         glDisable(GL_DEPTH_TEST);
+         outerShader.use();
+         float scale = 1.1f;
+         glBindVertexArray(cubeVAO);
+         glActiveTexture(GL_TEXTURE0);
+         glBindTexture(GL_TEXTURE_2D, cubeTexture);
+         model = glm::mat4(1.0f);
+         model = glm::translate(model, glm::vec3(-1.0f, 0.0f, -1.0f));
+         model = glm::scale(model, glm::vec3(scale));
+         outerShader.set_mat4("m", glm::value_ptr(model));
+         glDrawArrays(GL_TRIANGLES, 0, 36);
+         model = glm::mat4(1.0f);
+         model = glm::translate(model, glm::vec3(2.0f, 0.0f, 0.0f));
+         model = glm::scale(model, glm::vec3(scale));
+         outerShader.set_mat4("m", glm::value_ptr(model));
+         glDrawArrays(GL_TRIANGLES, 0, 36);
+         glStencilMask(0xFF);
+         glBindVertexArray(0);
+         glEnable(GL_DEPTH_TEST);
+
+         // transparent
+         linkedShader.use();
+         glBindVertexArray(transparentVAO);
+         glBindTexture(GL_TEXTURE_2D, windowTexture);
+         for (auto it = sorted.rbegin(); it != sorted.rend(); ++it) {
+           model = glm::mat4(1.0f);
+           model = glm::translate(model, it->second);
+           linkedShader.set_mat4("m", glm::value_ptr(model));
+           glDrawArrays(GL_TRIANGLES, 0, 6);
+         }
+
+         glfwSwapBuffers(window);
+         glfwPollEvents();
+       }
 
   glfwTerminate();
   return 0;
