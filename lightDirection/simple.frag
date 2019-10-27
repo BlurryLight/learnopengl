@@ -12,12 +12,14 @@ uniform vec3 lightPos;
 uniform vec3 viewPos;
 uniform bool blinn;
 
+
 void main()
 {
     vec3 color = texture(floorTexture,fs_in.TexCoords).rgb;
     //ambient
-    vec3 ambient = 0.5 * color;
+    vec3 ambient = 0.1 * color;
     //diffuse
+    float dstc = length(lightPos - fs_in.FragPos);
 
 vec3 lightDir = normalize(lightPos - fs_in.FragPos);
 vec3 normal = normalize(fs_in.Normal);
@@ -26,6 +28,8 @@ vec3 diffuse = diff * color;
 
 //specular
 vec3 viewDir = normalize(viewPos - fs_in.FragPos);
+
+float attenuation = 1.0 / (dstc * dstc);
 
 float spec = 0.0;
 if(blinn)
@@ -39,5 +43,7 @@ else
     spec = pow(max(dot(viewDir,reflectDir),0.0),8.0);
 }
 vec3 specular = vec3(0.3) * spec;
+diffuse *= attenuation;
+specular *= attenuation;
 FragColor = vec4(ambient + diffuse + specular ,1.0);
 }

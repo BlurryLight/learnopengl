@@ -20,7 +20,8 @@
 constexpr static GLuint SRC_WIDTH = 800;
 constexpr static GLuint SRC_HEIGHT = 600;
 
-void mouse_callback(GLFWwindow* window, double xpos, double ypos);
+unsigned int local_load_Texture(char const *path);
+void mouse_callback(GLFWwindow *window, double xpos, double ypos);
 Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
 float lastX = SRC_WIDTH / 2.0f;
 float lastY = SRC_HEIGHT / 2.0f;
@@ -66,6 +67,7 @@ int main() {
   linkedShader.use();
 
   glEnable(GL_DEPTH_TEST);
+  glEnable(GL_FRAMEBUFFER_SRGB);
   glEnable(GL_BLEND);
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
@@ -99,7 +101,7 @@ int main() {
   glEnableVertexAttribArray(2);
 
   glm::vec3 lightPos = glm::vec3(0.0f);
-  unsigned int floorTexture = loadTexture("wood.png");
+  unsigned int floorTexture = local_load_Texture("wood.png");
 
   linkedShader.use();
   linkedShader.set_int("floorTexture", 0);
@@ -153,4 +155,30 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
   lastY = ypos;
 
   camera.ProcessMouseMovement(xoffset, yoffset);
+}
+unsigned int local_load_Texture(char const *path) {
+  unsigned int textureID;
+  glGenTextures(1, &textureID);
+
+  int width, height, nrComponents;
+  unsigned char *data = stbi_load(path, &width, &height, &nrComponents, 0);
+  if (data) {
+    glBindTexture(GL_TEXTURE_2D, textureID);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_SRGB, width, height, 0, GL_RGB,
+                 GL_UNSIGNED_BYTE, data);
+    glGenerateMipmap(GL_TEXTURE_2D);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,
+                    GL_LINEAR_MIPMAP_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    stbi_image_free(data);
+  } else {
+    std::cout << "Texture failed to load at path: " << path << std::endl;
+    stbi_image_free(data);
+  }
+
+  return textureID;
 }
