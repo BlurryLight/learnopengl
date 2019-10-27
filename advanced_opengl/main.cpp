@@ -54,14 +54,42 @@ void framebuffer_size_callback(GLFWwindow*, int width, int height) {
   glViewport(0, 0, width, height);
 }
 
+inline GLFWwindow *local_init_gl_context(int width, int height,
+                                         const char *framename) {
+  if (!glfwInit()) {
+    std::cerr << "GLFW INIT FATAL ERROR" << std::endl;
+    exit(-1);
+  }
+  glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+  glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+  glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+  glfwWindowHint(GLFW_SAMPLES, 4);
+
+  GLFWwindow *window = glfwCreateWindow(width, height, framename, NULL, NULL);
+  if (window == NULL) {
+    std::cerr << "CREATE WINDOW FATAL ERROR" << std::endl;
+    exit(-1);
+  }
+
+  glfwMakeContextCurrent(window);
+
+  // glad loads
+  if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
+    std::cerr << "GLAD INIT FATAL ERROR" << std::endl;
+    exit(-1);
+  }
+  return window;
+}
+
 int main() {
-  auto window = init_gl_context(SRC_WIDTH, SRC_HEIGHT, "advanced_gl");
+  auto window = local_init_gl_context(SRC_WIDTH, SRC_HEIGHT, "advanced_gl");
   glfwSetCursorPosCallback(window, mouse_callback);
   glfwSetScrollCallback(window, scroll_callback);
   ShaderProgram redShader("tri.vert", "red.fs");
   ShaderProgram yellowShader("tri.vert", "yellow.fs");
   ShaderProgram blueShader("tri.vert", "blue.fs");
   ShaderProgram greenShader("tri.vert", "green.fs");
+  glEnable(GL_MULTISAMPLE);
 
   glEnable(GL_DEPTH_TEST);
   // clang-format off
