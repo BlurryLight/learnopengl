@@ -12,6 +12,7 @@ find_package(OpenGL REQUIRED COMPONENTS OpenGL)
 
 find_package(glsupport REQUIRED PATHS ${SRC_DIR}/../glsupport/)
 find_package(glm REQUIRED)
+find_package(assimp REQUIRED)
 
 IF(NOT GLSUPPORT_FOUND)
     message(${SRC_DIR})
@@ -43,5 +44,6 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
   ${GLAD_LIBRARIES}
   ${GLM_LIBRARIES}
   dl
+  ${ASSIMP_LIBRARIES}
   )
 set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 11)
