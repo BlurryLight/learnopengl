@@ -96,6 +96,21 @@ int main() {
   shader.use();
   shader.set_vec3("albedo", 0.5f, 0.3f, 0.1f);
   shader.set_float("ao", 1.0f);
+
+  shader.set_int("albedoMap", 0);
+  shader.set_int("metalllicMap", 1);
+  shader.set_int("roughnessMap", 2);
+  // texture
+  unsigned int albedo = loadTexture("rustediron2_basecolor.png");
+  unsigned int metallic = loadTexture("rustediron2_metallic.png");
+  unsigned int roughness = loadTexture("rustediron2_roughness.png");
+  glActiveTexture(GL_TEXTURE0);
+  glBindTexture(GL_TEXTURE_2D, albedo);
+  glActiveTexture(GL_TEXTURE1);
+  glBindTexture(GL_TEXTURE_2D, metallic);
+  glActiveTexture(GL_TEXTURE2);
+  glBindTexture(GL_TEXTURE_2D, roughness);
+
   // lights
   glm::vec3 lightPosition[] = {
       glm::vec3(-10.0f, 10.0f, 10.0f), glm::vec3(10.0f, 10.0f, 10.0f),

@@ -9,8 +9,6 @@ uniform float ao;
 uniform vec3 albedo;
 uniform float roughness;
 uniform float metallic;
-
-
 //lights
 uniform vec3 lightPosition[4];
 uniform vec3 lightColors[4];
