@@ -323,3 +323,4 @@ inline GLFWwindow *init_gl_context(int width, int height,
   }
   return window;
 }
+unsigned int loadHDRTexture(const char *path);

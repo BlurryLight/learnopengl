@@ -23,9 +23,10 @@ include_directories(${GLSUPPORT_INCLUDES})
 
 # it will copy when cmake runs
 # my desire is to copy when building
-file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/brdf.vert
-     DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
-file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/brdf.frag
+file(GLOB SHADERS
+  "*.vert" "*.frag"
+)
+file(COPY ${SHADERS}
      DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 
 
