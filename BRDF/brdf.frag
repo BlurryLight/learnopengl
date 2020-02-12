@@ -15,6 +15,8 @@ uniform vec3 lightColors[4];
 uniform vec3 camPos;
 const float PI = 3.14159265359;
 
+//IBL
+uniform samplerCube irradianceMap;
 
 //N: normal
 //H: half-way vector
@@ -98,9 +100,13 @@ void main()
         //c = albedo
         Lo += (KD * albedo / PI + specular) * radiance * NdotL;
     }
-    //add some ambient lighting
-    vec3 ambient = vec3(0.03) * albedo * ao;
-    vec3 color = ambient + Lo;
+    //ambient lighting
+    vec3 KS = fresnelSchlick(max(dot(N,V),0.0),F0);
+    vec3 KD = 1.0 - KS;
+    KD*= 1.0 - metallic;
+    vec3 irradiance = texture(irradianceMap,N).rgb;
+    vec3 diffuse = irradiance * albedo;
+    vec3 color = (diffuse * KD) + Lo;
 
     //HDR
     color = color / (color + vec3(1.0));

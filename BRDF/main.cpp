@@ -96,8 +96,10 @@ int main() {
   glDepthFunc(GL_LEQUAL); // skybox
   ShaderProgram shader("brdf.vert", "brdf.frag");
   ShaderProgram cube_shader("cubemap.vert", "cubemap.frag");
+  ShaderProgram cube_convolution_shader("cubemap.vert", "cubemap_conv.frag");
   ShaderProgram skybox_shader("skybox.vert", "skybox.frag");
   shader.use();
+  shader.set_int("irradianceMap", 0);
   shader.set_vec3("albedo", 0.5f, 0.3f, 0.1f);
   shader.set_float("ao", 1.0f);
 
@@ -164,6 +166,46 @@ int main() {
   }
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
+  // pbr: create an irradiance cubemap, and re-scale capture FBO to irradiance
+  // scale.
+  // --------------------------------------------------------------------------------
+  unsigned int irradianceMap;
+  glGenTextures(1, &irradianceMap);
+  glBindTexture(GL_TEXTURE_CUBE_MAP, irradianceMap);
+  for (unsigned int i = 0; i < 6; ++i) {
+    glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB16F, 32, 32, 0,
+                 GL_RGB, GL_FLOAT, nullptr);
+  }
+  glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+  glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+  glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+  glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+  glBindFramebuffer(GL_FRAMEBUFFER, captureFBO);
+  glBindRenderbuffer(GL_RENDERBUFFER, captureRBO);
+  glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, 32, 32);
+
+  // convert envmap to irramap
+  cube_convolution_shader.use();
+  cube_convolution_shader.set_int("environmentMap", 0);
+  cube_convolution_shader.set_mat4("projection",
+                                   glm::value_ptr(captureProjection));
+  glActiveTexture(GL_TEXTURE0);
+  glBindTexture(GL_TEXTURE_CUBE_MAP, envCubemap);
+
+  glViewport(0, 0, 32, 32);
+  glBindFramebuffer(GL_FRAMEBUFFER, captureFBO);
+  for (int i = 0; i < 6; ++i) {
+    cube_convolution_shader.set_mat4("view", glm::value_ptr(captureViews[i]));
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
+                           GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, irradianceMap,
+                           0);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    renderCube();
+  }
+  glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
   // configure viewport to the original
   glViewport(0, 0, SRC_WIDTH, SRC_HEIGHT);
 
@@ -196,6 +238,8 @@ int main() {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     shader.use();
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, irradianceMap);
     glm::mat4 projection =
         glm::perspective(glm::radians(camera.zoom),
                          (float)SRC_WIDTH / (float)SRC_HEIGHT, 0.1f, 100.0f);
