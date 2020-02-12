@@ -17,6 +17,8 @@ const float PI = 3.14159265359;
 
 //IBL
 uniform samplerCube irradianceMap;
+uniform samplerCube prefilterMap;
+uniform sampler2D brdfLUT;
 
 //N: normal
 //H: half-way vector
@@ -66,6 +68,7 @@ void main()
 
     vec3 N = normalize(Normal);
     vec3 V = normalize(camPos - WorldPos);//from WorldPos to camPos
+    vec3 R = reflect(-V,N);
     ////dielectrics use 0.04, if its metal,mix the albedo with it
     vec3 F0 = vec3(0.04);
     F0 = mix(F0,albedo,metallic);
@@ -101,12 +104,22 @@ void main()
         Lo += (KD * albedo / PI + specular) * radiance * NdotL;
     }
     //ambient lighting
-    vec3 KS = fresnelSchlick(max(dot(N,V),0.0),F0);
+    vec3 F  = fresnelSchlick(max(dot(N,V),0.0),F0);
+    vec3 KS  =  F;
     vec3 KD = 1.0 - KS;
     KD*= 1.0 - metallic;
     vec3 irradiance = texture(irradianceMap,N).rgb;
     vec3 diffuse = irradiance * albedo;
-    vec3 color = (diffuse * KD) + Lo;
+    const float MAX_REFLECTION_LOD = 4.0;
+    vec3 prefilteredColor = textureLod(prefilterMap, R,  roughness * MAX_REFLECTION_LOD).rgb;
+    vec2 brdf  = texture(brdfLUT, vec2(max(dot(N, V), 0.0), roughness)).rg;
+    vec3 specular = prefilteredColor * (F * brdf.x + brdf.y);
+
+    vec3 ambient = (KD * diffuse + specular) * ao;
+
+
+    vec3 color = ambient + Lo;
+
 
     //HDR
     color = color / (color + vec3(1.0));
